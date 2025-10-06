@@ -1,0 +1,42 @@
+
+#include <Arduino.h>
+
+#define PARA_PAGE  0x19          // Destination page
+#define BTN_FIRST  0x57          // Button VP high byte
+#define BTN_SECOND 0x00          // Button VP low byte
+
+// Function to switch page
+void switchPage(byte pageNumber) {
+  byte cmd[10] = {0x5A, 0xA5, 0x07, 0x82, 0x00, 0x84,0x5A, 0x01,
+                  0x00, 0x19};
+  Serial2.write(cmd, sizeof(cmd));
+  Serial.print("Switched to Page: ");
+  Serial.println(pageNumber, HEX);
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial2.begin(115200, SERIAL_8N1, 16, 17); // RX=16, TX=17 → DWIN
+  Serial.println("Ready for button → page switch...");
+}
+
+void loop() {
+  if (Serial2.available() >= 9) {   // Wait for DWIN touch frame
+    byte buffer[9];
+    Serial2.readBytes(buffer, 9);
+
+    // Debug print
+    Serial.print("Frame: ");
+    for (int i = 0; i < 9; i++) {
+      Serial.print("0x");
+      Serial.print(buffer[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+
+    // ✅ If this button was touched → switch page
+    if (buffer[4] == BTN_FIRST && buffer[5] == BTN_SECOND) {
+      switchPage(PARA_PAGE);
+    }
+  }
+}
